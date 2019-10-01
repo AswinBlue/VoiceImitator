@@ -5,7 +5,6 @@ if __name__ == '__main__' :
     vr = VoiceRecognizer.VoiceRecognizer()
 
     vr.setStream()
-    for i in range(1000) :
-        vr.getAverageVolume()
+    vr.listen()
     print('start finish')
 
