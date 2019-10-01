@@ -26,8 +26,9 @@ class VoiceRecognizer(object):
         self.__fig, ax = plt.subplots()
         x = np.arange(0, 2 * self.__CHUNK, 2)
         self.__line, = ax.plot(x, np.random.rand(self.__CHUNK))
-        ax.set_xlim(0,255)
-        ax.set_xlim(0,self.__CHUNK)
+        ax.set_ylim(0,255)
+        ax.set_xlim(0, self.__CHUNK)
+        self.__fig.show()
 
     def drawGraph(self, data):
         self.__line.set_ydata(data)
@@ -40,12 +41,11 @@ class VoiceRecognizer(object):
                                 channels = 1,
                                 rate = self.__RATE,
                                 input = True,
-                                output = True,
                                 frames_per_buffer = self.__CHUNK,
                                 stream_callback = self.__fill_buffer,
                                 input_device_index = 1)
 
-    def listen(self, interval=0.1, iterate=1000):
+    def listen(self, interval=0.001, iterate=1000):
         self.setGraph()
         for i in range(iterate) :
             # self.stream.read(self.__CHUNK)
@@ -57,7 +57,6 @@ class VoiceRecognizer(object):
             data_int = np.array(struct.unpack(str(2 * self.__CHUNK) + 'B', data), dtype='b')[::2] + 127
             print(data_int)
             self.drawGraph(data_int)
-
             time.sleep(interval)
 
     def getAverageVolume(self):
