@@ -5,13 +5,17 @@ import time
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import struct
+import speech_recognition as sr
 
 class VoiceRecognizer(object):
-    def __init__(self,rate=16000):
+    def __init__(self,rate=16000, deviceIdx=1):
         self.__RATE = rate # record rate ,16khz default
+        self.__deviceIndex = deviceIdx
         self.__CHUNK = int(self.__RATE / 10) # buffer size
         self.__pa = pyaudio.PyAudio()
         self.__buffer = queue.Queue()
+        self.__r = sr.Recognizer()
+        self.__mic = sr.Microphone(device_index = self.__deviceIndex)
 
     def __exit__(self):
         self.__pa.stop_stream()
@@ -30,7 +34,7 @@ class VoiceRecognizer(object):
         ax.set_xlim(0, self.__CHUNK)
         self.__fig.show()
 
-    def drawGraph(self, data):
+    def __drawGraph(self, data):
         self.__line.set_ydata(data)
         self.__fig.canvas.draw()
         self.__fig.canvas.flush_events()
@@ -43,9 +47,9 @@ class VoiceRecognizer(object):
                                 input = True,
                                 frames_per_buffer = self.__CHUNK,
                                 stream_callback = self.__fill_buffer,
-                                input_device_index = 1)
+                                input_device_index = self.__deviceIndex)
 
-    def listen(self, interval=0.001, iterate=1000):
+    def pyaudio_listen(self, interval=0.001, iterate=1000):
         self.setGraph()
         for i in range(iterate) :
             # self.stream.read(self.__CHUNK)
@@ -56,10 +60,15 @@ class VoiceRecognizer(object):
 
             data_int = np.array(struct.unpack(str(2 * self.__CHUNK) + 'B', data), dtype='b')[::2] + 127
             print(data_int)
-            self.drawGraph(data_int)
+            self.__drawGraph(data_int)
             time.sleep(interval)
 
     def getAverageVolume(self):
         data = np.fromstring(self.stream.read(self.__CHUNK), dtype = np.int16)
         print(int(np.average(np.abs(data))))
 
+    def mic_recognize(self):
+        with self.__mic as source:
+            self.__r.adjust_for_ambient_noise(source)
+            audio = self.__r.listen(source)
+        print(self.__r.recognize_google(audio, language = 'ko-KR'))
