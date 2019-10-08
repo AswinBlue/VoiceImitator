@@ -14,8 +14,11 @@ class VoiceRecognizer(object):
         self.__CHUNK = int(self.__RATE / 10) # buffer size
         self.__pa = pyaudio.PyAudio()
         self.__buffer = queue.Queue()
+
+    def set_recognizer(self):
         self.__r = sr.Recognizer()
         self.__mic = sr.Microphone(device_index = self.__deviceIndex)
+        self.__r.energy_threshold = 300
 
     def __exit__(self):
         self.__pa.stop_stream()
@@ -41,13 +44,13 @@ class VoiceRecognizer(object):
 
     def setStream(self) :
         self.stream = self.__pa.open(
-                                format = pyaudio.paInt16,
-                                channels = 1,
-                                rate = self.__RATE,
-                                input = True,
-                                frames_per_buffer = self.__CHUNK,
-                                stream_callback = self.__fill_buffer,
-                                input_device_index = self.__deviceIndex)
+            format = pyaudio.paInt16,
+            channels = 1,
+            rate = self.__RATE,
+            input = True,
+            frames_per_buffer = self.__CHUNK,
+            stream_callback = self.__fill_buffer,
+            input_device_index = self.__deviceIndex)
 
     def pyaudio_listen(self, interval=0.001, iterate=1000):
         self.setGraph()
@@ -71,4 +74,20 @@ class VoiceRecognizer(object):
         with self.__mic as source:
             self.__r.adjust_for_ambient_noise(source)
             audio = self.__r.listen(source)
-        print(self.__r.recognize_google(audio, language = 'ko-KR'))
+
+        response = {
+            "success": True,
+            "error": None,
+            "transcription": None
+        }
+        try:
+            response["transcription"] = self.__r.recognize_google(audio, language = 'ko-KR')
+        except sr.RequestError:
+            # API was unreachable or unresponsive
+            response["success"] = False
+            response["error"] = "API unavailable"
+        except sr.UnknownValueError:
+            # speech was unintelligible
+            response["error"] = "Unable to recognize speech"
+
+        return response
